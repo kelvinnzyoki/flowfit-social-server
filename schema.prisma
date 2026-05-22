@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SocialProvider {
+  X
+  LINKEDIN
+  FACEBOOK
+  INSTAGRAM
+}
+
+enum ScheduledPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+model ScheduledPost {
+  id             String              @id @default(cuid())
+  userId         String
+  text           String
+  mediaUrls      String[]            @default([])
+  providers      SocialProvider[]
+  status         ScheduledPostStatus @default(SCHEDULED)
+  scheduledAt    DateTime
+  publishedAt    DateTime?
+  failedAt       DateTime?
+  lastError      String?
+  attemptCount   Int                 @default(0)
+  maxAttempts    Int                 @default(3)
+  providerPostIds Json?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([status, scheduledAt])
+  @@index([userId, createdAt])
+}
