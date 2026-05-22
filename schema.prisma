@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SocialPlatform {
+  twitter
+  linkedin
+  instagram
+  threads
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PROCESSING
+  POSTED
+  FAILED
+  CANCELLED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  socialAccounts SocialAccount[]
+  posts          ScheduledPost[]
+}
+
+model SocialAccount {
+  id               String         @id @default(cuid())
+  userId           String
+  platform         SocialPlatform
+  providerUserId   String?
+  displayName      String?
+  username         String?
+  accessTokenEnc   String
+  refreshTokenEnc  String?
+  tokenExpiresAt   DateTime?
+  scopes           String[]       @default([])
+  meta             Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts ScheduledPost[]
+
+  @@unique([userId, platform, providerUserId])
+  @@index([userId, platform])
+}
+
+model ScheduledPost {
+  id              String         @id @default(cuid())
+  userId          String
+  socialAccountId String?
+  platform        SocialPlatform
+  text            String
+  status          PostStatus     @default(DRAFT)
+  scheduledAt     DateTime?
+  postedAt        DateTime?
+  externalPostId  String?
+  failureReason   String?
+  attemptCount    Int            @default(0)
+  maxAttempts     Int            @default(3)
+  topic           String?
+  tone            String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
+  media         PostMedia[]
+  logs          PostPublishLog[]
+
+  @@index([status, scheduledAt])
+  @@index([userId, platform])
+}
+
+model PostMedia {
+  id        String    @id @default(cuid())
+  postId    String
+  type      MediaType
+  url       String
+  publicId  String?
+  mimeType  String
+  sizeBytes Int
+  altText   String?
+  createdAt DateTime  @default(now())
+
+  post ScheduledPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model OAuthState {
+  id        String         @id @default(cuid())
+  state     String         @unique
+  userId    String
+  platform  SocialPlatform
+  verifier  String?
+  createdAt DateTime       @default(now())
+  expiresAt DateTime
+
+  @@index([state, platform])
+}
+
+model PostPublishLog {
+  id        String     @id @default(cuid())
+  postId    String
+  status    PostStatus
+  message   String?
+  response  Json?
+  createdAt DateTime   @default(now())
+
+  post ScheduledPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
