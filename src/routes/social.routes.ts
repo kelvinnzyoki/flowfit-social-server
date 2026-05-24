@@ -75,7 +75,13 @@ router.get('/posts', auth, asyncHandler(async (req, res) => {
 router.patch('/posts/:id/cancel', auth, asyncHandler(async (req, res) => {
   const post = await prisma.scheduledPost.findFirst({ where: { id: req.params.id, userId: req.user!.sub } });
   if (!post) throw new HttpError(404, 'Scheduled post not found');
-  if (![ScheduledPostStatus.DRAFT, ScheduledPostStatus.SCHEDULED, ScheduledPostStatus.FAILED].includes(post.status)) {
+  const cancellableStatuses: ScheduledPostStatus[] = [
+    ScheduledPostStatus.DRAFT,
+    ScheduledPostStatus.SCHEDULED,
+    ScheduledPostStatus.FAILED
+  ];
+
+  if (!cancellableStatuses.includes(post.status)) {
     throw new HttpError(409, `Cannot cancel a post with status ${post.status}`);
   }
 
