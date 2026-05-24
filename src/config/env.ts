@@ -1,40 +1,25 @@
-// src/config/env.ts
-
 import dotenv from "dotenv";
 import { z } from "zod";
 
 dotenv.config();
 
-const optionalString = z
-  .string()
-  .trim()
-  .min(1)
-  .optional();
+const optionalString = z.string().trim().min(1).optional();
 
 const envSchema = z.object({
-  NODE_ENV: z
-    .enum(["development", "production", "test"])
-    .default("development"),
-
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().default(5000),
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-
-  JWT_SECRET: z
-    .string()
-    .min(32, "JWT_SECRET should be at least 32 characters"),
-
-  CRON_SECRET: z
-    .string()
-    .min(32, "CRON_SECRET should be at least 32 characters"),
+  JWT_SECRET: z.string().min(32, "JWT_SECRET should be at least 32 characters"),
+  CRON_SECRET: z.string().min(32, "CRON_SECRET should be at least 32 characters"),
 
   APP_ORIGIN: z.string().min(1, "APP_ORIGIN is required"),
-
   PUBLIC_BASE_URL: z.string().url().optional(),
 
   CLOUDINARY_CLOUD_NAME: optionalString,
   CLOUDINARY_API_KEY: optionalString,
   CLOUDINARY_API_SECRET: optionalString,
+  CLOUDINARY_FOLDER: z.string().trim().min(1).default("flowfit-social"),
 
   FACEBOOK_CLIENT_ID: optionalString,
   FACEBOOK_CLIENT_SECRET: optionalString,
@@ -66,8 +51,14 @@ if (!parsed.success) {
     "Environment validation failed:\n",
     parsed.error.flatten().fieldErrors
   );
-
   process.exit(1);
 }
 
 export const env = parsed.data;
+
+export const isProduction = env.NODE_ENV === "production";
+
+export const allowedOrigins = env.APP_ORIGIN
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
