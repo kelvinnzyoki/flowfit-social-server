@@ -5,6 +5,12 @@ import { z } from "zod";
 
 dotenv.config();
 
+const optionalString = z
+  .string()
+  .trim()
+  .min(1)
+  .optional();
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
@@ -12,9 +18,7 @@ const envSchema = z.object({
 
   PORT: z.coerce.number().default(5000),
 
-  DATABASE_URL: z
-    .string()
-    .min(1, "DATABASE_URL is required"),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
 
   JWT_SECRET: z
     .string()
@@ -24,60 +28,35 @@ const envSchema = z.object({
     .string()
     .min(32, "CRON_SECRET should be at least 32 characters"),
 
-  APP_ORIGIN: z
-    .string()
-    .min(1, "APP_ORIGIN is required"),
+  APP_ORIGIN: z.string().min(1, "APP_ORIGIN is required"),
 
-  PUBLIC_BASE_URL: z
-    .string()
-    .url()
-    .optional(),
+  PUBLIC_BASE_URL: z.string().url().optional(),
 
-  // Cloudinary
-  CLOUDINARY_CLOUD_NAME: z
-    .string()
-    .optional(),
+  CLOUDINARY_CLOUD_NAME: optionalString,
+  CLOUDINARY_API_KEY: optionalString,
+  CLOUDINARY_API_SECRET: optionalString,
 
-  CLOUDINARY_API_KEY: z
-    .string()
-    .optional(),
+  FACEBOOK_CLIENT_ID: optionalString,
+  FACEBOOK_CLIENT_SECRET: optionalString,
+  FACEBOOK_PAGE_ID: optionalString,
+  FACEBOOK_PAGE_ACCESS_TOKEN: optionalString,
 
-  CLOUDINARY_API_SECRET: z
-    .string()
-    .optional(),
+  INSTAGRAM_CLIENT_ID: optionalString,
+  INSTAGRAM_CLIENT_SECRET: optionalString,
+  INSTAGRAM_ACCOUNT_ID: optionalString,
 
-  // Social OAuth (optional until connected)
-  FACEBOOK_CLIENT_ID: z
-    .string()
-    .optional(),
+  LINKEDIN_CLIENT_ID: optionalString,
+  LINKEDIN_CLIENT_SECRET: optionalString,
+  LINKEDIN_ACCESS_TOKEN: optionalString,
+  LINKEDIN_AUTHOR_URN: optionalString,
 
-  FACEBOOK_CLIENT_SECRET: z
-    .string()
-    .optional(),
-
-  INSTAGRAM_CLIENT_ID: z
-    .string()
-    .optional(),
-
-  INSTAGRAM_CLIENT_SECRET: z
-    .string()
-    .optional(),
-
-  LINKEDIN_CLIENT_ID: z
-    .string()
-    .optional(),
-
-  LINKEDIN_CLIENT_SECRET: z
-    .string()
-    .optional(),
-
-  X_CLIENT_ID: z
-    .string()
-    .optional(),
-
-  X_CLIENT_SECRET: z
-    .string()
-    .optional(),
+  X_CLIENT_ID: optionalString,
+  X_CLIENT_SECRET: optionalString,
+  X_BEARER_TOKEN: optionalString,
+  X_API_KEY: optionalString,
+  X_API_SECRET: optionalString,
+  X_ACCESS_TOKEN: optionalString,
+  X_ACCESS_TOKEN_SECRET: optionalString,
 });
 
 const parsed = envSchema.safeParse(process.env);
