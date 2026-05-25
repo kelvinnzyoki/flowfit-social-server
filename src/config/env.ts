@@ -16,6 +16,13 @@ const envSchema = z.object({
   APP_ORIGIN: z.string().min(1, "APP_ORIGIN is required"),
   PUBLIC_BASE_URL: z.string().url().optional(),
 
+  // Optional single-owner/admin mode for the poster frontend.
+  // If you already authenticate through FlowFit cookies, you may leave this unset.
+  POSTER_SERVICE_USER_ID: optionalString,
+
+  GROQ_API_KEY: optionalString,
+  GROQ_MODEL: z.string().trim().min(1).default("llama-3.1-8b-instant"),
+
   CLOUDINARY_CLOUD_NAME: optionalString,
   CLOUDINARY_API_KEY: optionalString,
   CLOUDINARY_API_SECRET: optionalString,
