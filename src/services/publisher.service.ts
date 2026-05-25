@@ -5,22 +5,21 @@ import HttpError from '../utils/httpError';
 
 type PublishResult = { provider: SocialProvider; id: string; url?: string };
 
-const GRAPH_VERSION = 'v21.0';
-
-function firstMediaUrl(post: ScheduledPost) {
-  const urls = Array.isArray(post.mediaUrls) ? post.mediaUrls : [];
-  return typeof urls[0] === 'string' ? urls[0] : undefined;
+function firstMedia(post: ScheduledPost) {
+  return Array.isArray(post.mediaUrls) && post.mediaUrls.length > 0 ? post.mediaUrls[0] : undefined;
 }
 
 async function publishToX(post: ScheduledPost): Promise<PublishResult> {
-  if (!env.X_BEARER_TOKEN) {
+  const token = env.X_ACCESS_TOKEN || env.X_BEARER_TOKEN;
+
+  if (!token) {
     throw new HttpError(503, 'X publishing is not configured');
   }
 
   const response = await axios.post(
     'https://api.x.com/2/tweets',
-    { text: post.text },
-    { headers: { Authorization: `Bearer ${env.X_BEARER_TOKEN}` }, timeout: 15000 }
+    { text: post.text.slice(0, 280) },
+    { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }
   );
 
   return { provider: SocialProvider.X, id: response.data?.data?.id ?? 'unknown' };
@@ -47,16 +46,14 @@ async function publishToLinkedIn(post: ScheduledPost): Promise<PublishResult> {
     {
       headers: {
         Authorization: `Bearer ${env.LINKEDIN_ACCESS_TOKEN}`,
-        'X-Restli-Protocol-Version': '2.0.0'
+        'X-Restli-Protocol-Version': '2.0.0',
+        'Content-Type': 'application/json'
       },
       timeout: 15000
     }
   );
 
-  return {
-    provider: SocialProvider.LINKEDIN,
-    id: response.headers['x-restli-id'] ?? response.data?.id ?? 'unknown'
-  };
+  return { provider: SocialProvider.LINKEDIN, id: response.headers['x-restli-id'] ?? response.data?.id ?? 'unknown' };
 }
 
 async function publishToFacebook(post: ScheduledPost): Promise<PublishResult> {
@@ -64,27 +61,36 @@ async function publishToFacebook(post: ScheduledPost): Promise<PublishResult> {
     throw new HttpError(503, 'Facebook publishing is not configured');
   }
 
-  const mediaUrl = firstMediaUrl(post);
+  const mediaUrl = firstMedia(post);
 
   if (mediaUrl) {
-    const photoEndpoint = `https://graph.facebook.com/${GRAPH_VERSION}/${env.FACEBOOK_PAGE_ID}/photos`;
-    const response = await axios.post(photoEndpoint, null, {
-      params: {
-        url: mediaUrl,
-        caption: post.text,
-        access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN
-      },
-      timeout: 20000
-    });
+    const response = await axios.post(
+      `https://graph.facebook.com/v21.0/${env.FACEBOOK_PAGE_ID}/photos`,
+      null,
+      {
+        params: {
+          url: mediaUrl,
+          caption: post.text,
+          access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN
+        },
+        timeout: 20000
+      }
+    );
 
     return { provider: SocialProvider.FACEBOOK, id: response.data?.post_id ?? response.data?.id ?? 'unknown' };
   }
 
-  const feedEndpoint = `https://graph.facebook.com/${GRAPH_VERSION}/${env.FACEBOOK_PAGE_ID}/feed`;
-  const response = await axios.post(feedEndpoint, null, {
-    params: { message: post.text, access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN },
-    timeout: 15000
-  });
+  const response = await axios.post(
+    `https://graph.facebook.com/v21.0/${env.FACEBOOK_PAGE_ID}/feed`,
+    null,
+    {
+      params: {
+        message: post.text,
+        access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN
+      },
+      timeout: 15000
+    }
+  );
 
   return { provider: SocialProvider.FACEBOOK, id: response.data?.id ?? 'unknown' };
 }
@@ -94,38 +100,42 @@ async function publishToInstagram(post: ScheduledPost): Promise<PublishResult> {
     throw new HttpError(503, 'Instagram publishing is not configured');
   }
 
-  const mediaUrl = firstMediaUrl(post);
-  if (!mediaUrl) {
-    throw new HttpError(400, 'Instagram publishing requires at least one image or video URL');
+  const imageUrl = firstMedia(post);
+  if (!imageUrl) {
+    throw new HttpError(400, 'Instagram publishing requires an uploaded image URL');
   }
 
-  const isVideo = /\.(mp4|mov|m4v)(\?|#|$)/i.test(mediaUrl);
-  const createEndpoint = `https://graph.facebook.com/${GRAPH_VERSION}/${env.INSTAGRAM_ACCOUNT_ID}/media`;
+  const container = await axios.post(
+    `https://graph.facebook.com/v21.0/${env.INSTAGRAM_ACCOUNT_ID}/media`,
+    null,
+    {
+      params: {
+        image_url: imageUrl,
+        caption: post.text,
+        access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN
+      },
+      timeout: 20000
+    }
+  );
 
-  const createResponse = await axios.post(createEndpoint, null, {
-    params: {
-      caption: post.text,
-      access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN,
-      ...(isVideo ? { media_type: 'REELS', video_url: mediaUrl } : { image_url: mediaUrl })
-    },
-    timeout: 30000
-  });
-
-  const creationId = createResponse.data?.id;
+  const creationId = container.data?.id;
   if (!creationId) {
     throw new HttpError(502, 'Instagram did not return a media container id');
   }
 
-  const publishEndpoint = `https://graph.facebook.com/${GRAPH_VERSION}/${env.INSTAGRAM_ACCOUNT_ID}/media_publish`;
-  const publishResponse = await axios.post(publishEndpoint, null, {
-    params: {
-      creation_id: creationId,
-      access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN
-    },
-    timeout: 30000
-  });
+  const publishResponse = await axios.post(
+    `https://graph.facebook.com/v21.0/${env.INSTAGRAM_ACCOUNT_ID}/media_publish`,
+    null,
+    {
+      params: {
+        creation_id: creationId,
+        access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN
+      },
+      timeout: 20000
+    }
+  );
 
-  return { provider: SocialProvider.INSTAGRAM, id: publishResponse.data?.id ?? creationId };
+  return { provider: SocialProvider.INSTAGRAM, id: publishResponse.data?.id ?? 'unknown' };
 }
 
 export async function publish(post: ScheduledPost): Promise<PublishResult[]> {
