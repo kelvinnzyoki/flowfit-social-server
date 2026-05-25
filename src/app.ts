@@ -15,15 +15,21 @@ app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
 app.use(helmet());
+
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
     return callback(new HttpError(403, 'Origin not allowed by CORS'));
   },
   credentials: true
 }));
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Vercel hard-caps request bodies at 4.5 MB — match that here so Express
+// never rejects before Vercel does, and the error message stays consistent.
+app.use(express.json({ limit: '4.5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '4.5mb' }));
 
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
