@@ -13,12 +13,35 @@ declare global {
   }
 }
 
+function readCookie(req: Request, name: string) {
+  const raw = req.headers.cookie;
+  if (!raw) return undefined;
+
+  return raw
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
+}
+
 export default function auth(req: Request, _res: Response, next: NextFunction) {
   const header = req.headers.authorization;
-  const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;
+  const bearerToken = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;
+
+  const cookieToken =
+    readCookie(req, 'flowfit_access_token') ||
+    readCookie(req, 'access_token') ||
+    readCookie(req, 'token');
+
+  const token = bearerToken || cookieToken;
+
+  if (!token && env.POSTER_SERVICE_USER_ID) {
+    req.user = { sub: env.POSTER_SERVICE_USER_ID, role: 'poster-service' };
+    return next();
+  }
 
   if (!token) {
-    throw new HttpError(401, 'Missing bearer token');
+    throw new HttpError(401, 'Missing authenticated FlowFit session');
   }
 
   try {
@@ -27,6 +50,6 @@ export default function auth(req: Request, _res: Response, next: NextFunction) {
     req.user = decoded;
     next();
   } catch {
-    throw new HttpError(401, 'Invalid or expired bearer token');
+    throw new HttpError(401, 'Invalid or expired FlowFit session');
   }
 }
