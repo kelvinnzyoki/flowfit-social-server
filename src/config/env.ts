@@ -16,12 +16,14 @@ const envSchema = z.object({
   APP_ORIGIN: z.string().min(1, "APP_ORIGIN is required"),
   PUBLIC_BASE_URL: z.string().url().optional(),
 
-  // Optional single-owner/admin mode for the poster frontend.
-  // If you already authenticate through FlowFit cookies, you may leave this unset.
+  // Poster service auth — two ways to bypass FlowFit JWT:
+  // 1. Set only POSTER_SERVICE_USER_ID → any request with NO token is accepted
+  // 2. Set both → requests with VITE_API_TOKEN (Bearer) are also accepted
   POSTER_SERVICE_USER_ID: optionalString,
+  POSTER_API_TOKEN: optionalString,   // must match VITE_API_TOKEN on the frontend
 
   GROQ_API_KEY: optionalString,
-  GROQ_MODEL: z.string().trim().min(1).default("llama-3.1-8b-instant"),
+  GROQ_MODEL: z.string().trim().min(1).default("llama-3.3-70b-versatile"),
 
   CLOUDINARY_CLOUD_NAME: optionalString,
   CLOUDINARY_API_KEY: optionalString,
