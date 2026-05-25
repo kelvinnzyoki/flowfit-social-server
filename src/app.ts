@@ -3,11 +3,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { ZodError } from 'zod';
-import { allowedOrigins, isProduction } from './config/env';
-import healthRoutes from './routes/health.routes';
-import socialRoutes from './routes/social.routes';
-import errorMiddleware from './middleware/error';
-import HttpError from './utils/httpError';
+import { allowedOrigins, isProduction } from './config/env.js';
+import healthRoutes from './routes/health.routes.js';
+import socialRoutes from './routes/social.routes.js';
+import errorMiddleware from './middleware/error.js';
+import HttpError from './utils/httpError.js';
 
 const app = express();
 
