@@ -42,7 +42,10 @@ router.post('/generate', auth, asyncHandler(async (req, res) => {
     'https://api.groq.com/openai/v1/chat/completions',
     {
       model: env.GROQ_MODEL,
-      temperature: 0.8,
+      temperature: 1.35,
+      top_p: 0.98,
+      frequency_penalty: 1.2,
+      presence_penalty: 1.1,
       response_format: { type: 'json_object' },
       messages: [
         {
