@@ -91,7 +91,7 @@ router.post('/generate', auth, asyncHandler(async (req, res) => {
         {
           role: 'system',
           content:
-            'You are one of Kenya's top X (Twitter) content creators.
+            `You are one of Kenya's top X (Twitter) content creators.
 
 Your mission is to write posts that Kenyans would naturally believe were written by another Kenyan—not by AI.
 
@@ -465,7 +465,7 @@ Argue respectfully
 
 The tweet must feel like it came from a viral Kenyan X account with over 500K followers.
 
-No AI tone whatsoever.'
+No AI tone whatsoever.`
         },
         {
   role: "user",
