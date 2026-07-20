@@ -63,9 +63,6 @@ const moods = [
   "unexpected"
 ];
 
-const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-const randomMood = moods[Math.floor(Math.random() * moods.length)];
-
 
 router.get('/providers', auth, asyncHandler(async (_req, res) => {
   res.json({ ok: true, providers: getProviderConnectionStatus() });
@@ -77,6 +74,9 @@ router.post('/generate', auth, asyncHandler(async (req, res) => {
   }
 
   const parsed = generateSchema.parse(req.body);
+
+  const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+  const randomMood = moods[Math.floor(Math.random() * moods.length)];
 
   const variantsExample = parsed.providers
     .map((p) => `    "${p}": "post text for ${p}"`)
