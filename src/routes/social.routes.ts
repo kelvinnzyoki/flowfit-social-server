@@ -78,14 +78,18 @@ router.post('/generate', auth, asyncHandler(async (req, res) => {
 
   const parsed = generateSchema.parse(req.body);
 
+  const variantsExample = parsed.providers
+    .map((p) => `    "${p}": "post text for ${p}"`)
+    .join(',\n');
+
   const response = await axios.post(
     'https://api.groq.com/openai/v1/chat/completions',
     {
       model: env.GROQ_MODEL,
-      temperature: 1.45,
-      top_p: 0.98,
-      frequency_penalty: 1.35,
-      presence_penalty: 1.25,
+      temperature: 1.1,
+      top_p: 0.95,
+      frequency_penalty: 0.8,
+      presence_penalty: 0.6,
       response_format: { type: 'json_object' },
       messages: [
         {
@@ -95,11 +99,11 @@ router.post('/generate', auth, asyncHandler(async (req, res) => {
 
 Your mission is to write posts that Kenyans would naturally believe were written by another Kenyan—not by AI.
 
-Return ONLY valid JSON.
+Return ONLY valid JSON, with exactly one key per provider listed below (no extra keys, no missing keys):
 
 {
   "variants": {
-    "X": "tweet"
+${variantsExample}
   }
 }
 
@@ -489,16 +493,30 @@ No AI tone whatsoever.`
   );
 
   const content = response.data?.choices?.[0]?.message?.content;
+  console.log('[/generate] raw Groq content:', content);
   if (!content) throw new HttpError(502, 'Groq returned an empty response');
 
   let data: { variants?: Partial<Record<SocialProvider, string>> };
   try {
     data = JSON.parse(content);
   } catch {
+    console.error('[/generate] Groq returned non-JSON content:', content);
     throw new HttpError(502, 'Groq returned invalid JSON');
   }
 
-  res.json({ ok: true, variants: data.variants || {} });
+  const variants = data.variants || {};
+  const missingProviders = parsed.providers.filter((p) => !variants[p]);
+
+  if (Object.keys(variants).length === 0) {
+    console.error('[/generate] Groq returned empty variants. Raw content:', content);
+    throw new HttpError(502, 'Groq returned no post variants. Check server logs for the raw model response.');
+  }
+
+  if (missingProviders.length > 0) {
+    console.warn('[/generate] Groq omitted variants for providers:', missingProviders);
+  }
+
+  res.json({ ok: true, variants });
 }));
 
 router.post('/media', auth, uploadArray('media', 4), asyncHandler(async (req, res) => {
