@@ -27,6 +27,46 @@ const generateSchema = z.object({
   providers: z.array(z.nativeEnum(SocialProvider)).min(1).max(4)
 });
 
+const topics = [
+  "football",
+  "politics",
+  "campus",
+  "dating",
+  "crypto",
+  "technology",
+  "wildlife",
+  "tourism",
+  "music",
+  "business",
+  "matatus",
+  "village life",
+  "government",
+  "fashion",
+  "relationships",
+  "food",
+  "AI",
+  "Gen Z",
+  "weather",
+  "adulting"
+];
+
+const moods = [
+  "funny",
+  "relatable",
+  "controversial",
+  "wholesome",
+  "motivational",
+  "sarcastic",
+  "storytelling",
+  "curious",
+  "meme",
+  "unexpected"
+];
+
+const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+const randomMood = moods[Math.floor(Math.random() * moods.length)];
+
+
 router.get('/providers', auth, asyncHandler(async (_req, res) => {
   res.json({ ok: true, providers: getProviderConnectionStatus() });
 }));
@@ -42,10 +82,10 @@ router.post('/generate', auth, asyncHandler(async (req, res) => {
     'https://api.groq.com/openai/v1/chat/completions',
     {
       model: env.GROQ_MODEL,
-      temperature: 1.35,
+      temperature: 1.45,
       top_p: 0.98,
-      frequency_penalty: 1.2,
-      presence_penalty: 1.1,
+      frequency_penalty: 1.35,
+      presence_penalty: 1.25,
       response_format: { type: 'json_object' },
       messages: [
         {
@@ -428,12 +468,15 @@ The tweet must feel like it came from a viral Kenyan X account with over 500K fo
 No AI tone whatsoever.'
         },
         {
-          role: 'user',
-          content: JSON.stringify({
-            brief: parsed.brief,
-            platforms: parsed.providers
-          })
-        }
+  role: "user",
+  content: JSON.stringify({
+    topic: randomTopic,
+    mood: randomMood,
+    timestamp: Date.now(),
+    seed: crypto.randomUUID(),
+    providers: parsed.providers
+  })
+}
       ]
     },
     {
