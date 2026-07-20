@@ -63,6 +63,19 @@ const moods = [
   "unexpected"
 ];
 
+const languageStyles = [
+  "Mostly English, with a little Sheng mixed in",
+  "Mostly Kiswahili, with a little English mixed in",
+  "Mostly Sheng, with a little English mixed in",
+  "An even mix of English and Kiswahili",
+  "An even mix of English and Sheng",
+  "An even mix of Kiswahili and Sheng",
+  "Pure, natural English only",
+  "Pure, natural Sheng only",
+  "Mostly English, with one naturally fitting local dialect word (Kikuyu, Luo, Kamba, Luhya, Kisii, Kalenjin, or Mijikenda) mixed in",
+  "Mostly Kiswahili, with one naturally fitting local dialect word (Kikuyu, Luo, Kamba, Luhya, Kisii, Kalenjin, or Mijikenda) mixed in"
+];
+
 
 router.get('/providers', auth, asyncHandler(async (_req, res) => {
   res.json({ ok: true, providers: getProviderConnectionStatus() });
@@ -77,6 +90,7 @@ router.post('/generate', auth, asyncHandler(async (req, res) => {
 
   const randomTopic = topics[Math.floor(Math.random() * topics.length)];
   const randomMood = moods[Math.floor(Math.random() * moods.length)];
+  const randomLanguageStyle = languageStyles[Math.floor(Math.random() * languageStyles.length)];
 
   const variantsExample = parsed.providers
     .map((p) => `    "${p}": "post text for ${p}"`)
@@ -125,23 +139,17 @@ Maximum 280 characters.
 
 LANGUAGE
 
-Randomly mix:
+For this specific tweet, use this exact language style: ${randomLanguageStyle}
 
-• English
-• Kiswahili
-• Sheng
+Do not default to Kiswahili unless that is what this language style says. Follow the assigned language style precisely.
 
-Occasionally include a naturally fitting word from:
+Never force dialects if the style above doesn't call for one.
 
-• Kikuyu
-• Luo
-• Kamba
-• Luhya
-• Kisii
-• Kalenjin
-• Mijikenda
+FLOW
 
-Never force dialects.
+The tweet must read smoothly, like something one fluent, well-spoken Kenyan would naturally type in one breath.
+Avoid choppy, disconnected, or randomly stitched-together phrases.
+Sentences should connect logically with natural rhythm and punctuation, not feel like keyword-stuffing.
 
 TOPICS
 
